@@ -31,7 +31,12 @@ pipeline {
             steps {
                 script {
 
-                    if (env.BRANCH_NAME == "INT") {
+                    /* ---------------------------
+                       DEPLOY INT ENVIRONMENT
+                       Matches: INT-homepage-update, INT-test, INT-*
+                    --------------------------- */
+                    if (env.BRANCH_NAME.startsWith("INT")) {
+
                         echo "🚀 Deploying to INT environment..."
 
                         sh '''
@@ -48,7 +53,12 @@ pipeline {
                         '''
                     }
 
-                    else if (env.BRANCH_NAME == "PROD") {
+                    /* ---------------------------
+                       DEPLOY PROD ENVIRONMENT
+                       When branch = main
+                    --------------------------- */
+                    else if (env.BRANCH_NAME == "main") {
+
                         echo "🚀 Deploying to PROD environment..."
 
                         sh '''
@@ -66,22 +76,27 @@ pipeline {
                     }
 
                     else {
-                        echo "🛑 Not deploying this branch (not INT or PROD)"
+                        echo "🛑 Not deploying this branch (not INT-* or main)"
                     }
                 }
             }
         }
 
         stage('Health Check') {
-            when { anyOf { branch 'INT'; branch 'PROD' } }
+            when { anyOf { branch pattern: "INT.*"; branch "main" } }
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'INT') {
+
+                    if (env.BRANCH_NAME.startsWith("INT")) {
+                        echo "🩺 INT Health Check..."
                         sh '''
                             curl -s http://localhost:5001 || true
                             curl -s http://localhost:5002 || true
                         '''
-                    } else {
+                    }
+
+                    if (env.BRANCH_NAME == "main") {
+                        echo "🩺 PROD Health Check..."
                         sh '''
                             curl -s http://localhost:6001 || true
                             curl -s http://localhost:6002 || true
